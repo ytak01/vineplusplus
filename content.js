@@ -200,6 +200,7 @@ function checkForSeenItem() {
 		const itemButtons = document.querySelectorAll('.vvp-details-btn');
 		for (const itemButton of itemButtons) {
 			const asin = itemButton.querySelector('.a-button-input').dataset.asin;
+			const itemTile = document.querySelector(`[data-asin="${asin}"]`).parentElement.parentElement.parentElement.parentElement;
 			
 			// DBに登録済か確認
 			const getReq = itemStore.get(asin);
@@ -207,15 +208,13 @@ function checkForSeenItem() {
 
 				if (!!event.target.result) {
 					// 登録済なら背景色を白にする
-					const itemTile = document.querySelector(`[data-asin="${event.target.result.asin}"]`).parentElement.parentElement.parentElement.parentElement;
-					itemTileback = itemTile;
 					if (itemTile.style.backgroundColor != 'gainsboro') {
 						itemTile.style.backgroundColor = 'white';
 					}
 				}
-				const itemTile2 = document.querySelector(`[data-asin="${asin}"]`).parentElement.parentElement.parentElement.parentElement;
-				if (itemTile2.style.backgroundColor == 'snow') {
-					itemTile2.style.backgroundColor = 'antiquewhite';
+				
+				if (itemTile.style.backgroundColor == 'snow') {
+					itemTile.style.backgroundColor = 'antiquewhite';
 				}
 			}
 			
