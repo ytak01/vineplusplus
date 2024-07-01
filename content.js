@@ -149,3 +149,209 @@ class VinePlusPlus {
 
 // let's rock, baby
 (new VinePlusPlus()).InstallUI();
+
+let exclusionWords = new Array("");
+
+window.onload = function() {
+
+	// 商品一覧を取得
+	const itemContainer = document.querySelector('#vvp-items-grid');
+	if (!itemContainer){
+		return;
+	}
+	const itemTiles= itemContainer.querySelectorAll('.vvp-item-tile');
+
+	// 除外ワードを取得
+	const exclusionWordStr = localStorage.vine_exclusionWord;
+	exclusionWords = exclusionWordStr?.split(',');
+	
+	createExclusionWordForm();
+
+	for (const itemTile of itemTiles) {
+		settingItemTile(itemTile);
+	}
+
+	checkForSeenItem();
+
+	unsetGridHeight();
+}
+
+/**
+ * indexedDBに接続して、既に確認したことのある商品かチェック
+ */
+function checkForSeenItem() {
+
+	// indexedDBに接続
+	const openReq = indexedDB.open('VineAddon');
+	openReq.onupgradeneeded = function(event) {
+		let db = event.target.result;
+		
+		db.createObjectStore('Item', {keyPath: 'asin'});
+	}
+
+	openReq.onsuccess = function(event) {
+
+		// Itemオブジェクトストアを開く
+		let db = event.target.result;
+		let trans = db.transaction('Item', 'readwrite');
+		let itemStore = trans.objectStore('Item');
+		
+		// 画面に表示されている商品をチェック
+		const itemButtons = document.querySelectorAll('.vvp-details-btn');
+		for (const itemButton of itemButtons) {
+			const asin = itemButton.querySelector('.a-button-input').dataset.asin;
+			
+			// DBに登録済か確認
+			const getReq = itemStore.get(asin);
+			getReq.onsuccess = function(event) {
+
+				if (!!event.target.result) {
+					// 登録済なら背景色を白にする
+					const itemTile = document.querySelector(`[data-asin="${event.target.result.asin}"]`).parentElement.parentElement.parentElement.parentElement;
+					itemTileback = itemTile;
+					if (itemTile.style.backgroundColor != 'gainsboro') {
+						itemTile.style.backgroundColor = 'white';
+					}
+				}
+				const itemTile2 = document.querySelector(`[data-asin="${asin}"]`).parentElement.parentElement.parentElement.parentElement;
+				if (itemTile2.style.backgroundColor == 'snow') {
+					itemTile2.style.backgroundColor = 'antiquewhite';
+				}
+			}
+			
+			// DBにasinを登録
+			itemStore.put({asin: asin});
+		}
+	}
+}
+
+/**
+ * itemTileに色々処理
+ */
+function settingItemTile(itemTile) {
+
+	// フルネームを表示するspanを別途追加
+	const truncateFull = itemTile.querySelector('.a-truncate-full');
+
+	// 既に処理済のitemTileの場合、スキップ
+	if (!truncateFull) { return; }
+
+	let span = document.createElement('span');
+	span.textContent = truncateFull.textContent;
+	itemTile.querySelector('.a-link-normal').append(span);
+	
+	// 名前部分の高さ上限を解除
+	itemTile.style.maxHeight = null;
+	
+	// 既存の名前spanを削除
+	truncateFull.remove();
+	const truncateCut = itemTile.querySelector('.a-truncate-cut');
+	truncateCut.remove();
+	
+	// 除外ワードが含まれているか確認
+	for (const exclusionWord of exclusionWords) {
+		if (exclusionWord) {
+			if (span.textContent.toLowerCase().includes(exclusionWord.toLowerCase())) {
+				// 背景色をグレーにして、一番下に並び替える
+				itemTile.style.backgroundColor = 'gainsboro';
+				itemTile.remove();
+				document.querySelector('#vvp-items-grid').append(itemTile);
+				break;
+			} else {
+				itemTile.style.backgroundColor = 'snow'; // 背景色を設定（チェック済の商品の場合、後で白に上書きする）
+			}
+		}
+	}
+}
+
+/**
+ * 除外ワードフォームの作成
+ */
+function createExclusionWordForm() {
+	
+	// テキストインプット
+	let input = document.createElement('input');
+	input.onblur = onblurExclusionWord;
+	
+	// 折りたたみ
+	let details = document.createElement('details');
+	details.style.marginTop = '7px';
+	let summary = document.createElement('summary');
+	summary.textContent = '除外ワード';
+	details.append(summary);
+	details.append(input);
+	
+	// 除外ワード一覧
+	let wordContainer = document.createElement('div');
+	wordContainer.setAttribute('id', 'vine-addon_word-container');
+	wordContainer.style.marginTop = '4px';
+
+	details.append(wordContainer);
+	createWordButtons(wordContainer);
+	
+	let bsContainer = document.querySelector('.vvp-items-button-and-search-container');
+	bsContainer.style.display = 'block'
+	bsContainer.append(details);
+}
+
+/**
+ * 除外ワードボタンを生成
+ */
+function createWordButtons(wordContainer) {
+	
+	// 一覧をクリア
+	const clone = wordContainer.cloneNode(false);
+	wordContainer.parentNode.replaceChild(clone, wordContainer);
+	
+	// ボタン生成
+	for (const exclusionWord of exclusionWords) {
+		let button = document.createElement('button');
+		button.style.margin = '2px';
+		button.style.backgroundColor = 'white';
+		button.style.border = '1px solid silver';
+		button.style.borderRadius = '5px';
+		button.textContent = exclusionWord;
+		button.onclick = onclickWordButton;
+		clone.append(button);
+	}
+}
+
+/**
+ * 除外ワードを登録
+ */
+function onblurExclusionWord(event) {
+	
+	if (!event.target.value) {
+		return;
+	}
+	
+	exclusionWords.push(event.target.value);
+	localStorage.vine_exclusionWord = exclusionWords.join(',');
+	
+	createWordButtons(document.querySelector('#vine-addon_word-container'));
+	
+	event.target.value = '';
+}
+
+/**
+ * 除外ワードを削除
+ */
+function onclickWordButton(event) {
+	exclusionWords = exclusionWords.filter(word => word != event.target.textContent);
+	
+	localStorage.vine_exclusionWord = exclusionWords.join(',');
+	
+	createWordButtons(document.querySelector('#vine-addon_word-container'));
+}
+
+/**
+ * 高さの上限設定を解除
+ */
+function unsetGridHeight() {
+
+	let grids = document.querySelectorAll('.vvp-item-product-title-container');
+	for (let grid of grids) {
+		grid.style.height = 'auto';
+	}
+}
+
