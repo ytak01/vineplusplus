@@ -163,7 +163,10 @@ window.onload = function() {
 
 	// 除外ワードを取得
 	const exclusionWordStr = localStorage.vine_exclusionWord;
-	exclusionWords = exclusionWordStr?.split(',');
+	if (typeof exclusionWordStr !== "undefined")
+	{
+		exclusionWords = exclusionWordStr?.split(',');
+	}
 	
 	createExclusionWordForm();
 
@@ -251,6 +254,8 @@ function settingItemTile(itemTile) {
 	for (const exclusionWord of exclusionWords) {
 		if (exclusionWord) {
 			if (span.textContent.toLowerCase().includes(exclusionWord.toLowerCase())) {
+				span.innerHTML = span.textContent.replaceAll(exclusionWord, '<span style="color:yellow">' + exclusionWord + '</span>');
+
 				// 背景色をグレーにして、一番下に並び替える
 				itemTile.style.backgroundColor = 'gainsboro';
 				itemTile.remove();
@@ -276,7 +281,7 @@ function createExclusionWordForm() {
 	let details = document.createElement('details');
 	details.style.marginTop = '7px';
 	let summary = document.createElement('summary');
-	summary.textContent = '除外ワード';
+	summary.textContent = 'Exclude Word';
 	details.append(summary);
 	details.append(input);
 	
