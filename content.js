@@ -74,7 +74,7 @@ class VinePlusPlus {
             aSpan.parentNode.parentNode.setAttribute("title", aSpan.textContent.trim());
         });
 
-        const navigation = document.querySelector("div[role=navigation]:has(ul.a-pagination)");
+        const navigation = document.querySelector(":is(nav, div[role=navigation]):has(ul.a-pagination)");
         if (navigation) {
           const navigationClone = navigation.cloneNode(true);
           const parent = navigation.parentNode;
@@ -358,4 +358,5 @@ function unsetGridHeight() {
 		grid.style.height = 'auto';
 	}
 }
+
 
